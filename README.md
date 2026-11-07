@@ -143,6 +143,19 @@ is in [docs/BLOG.md](docs/BLOG.md).
 
 ---
 
+## Built by voice (Code with Wispr)
+
+Parts of Probation were made by voice with [Wispr Flow](https://wisprflow.ai): the Warden
+commands in Discord and this section, dictated rather than typed (in my own words below).
+
+I use Wispr to give the command on Discord, like how the Warden is going to work. It's going to add the rookie and it's going to use Scout. It can also improve that by asking the agent Scout and the rookie to do the work and by showing how the rookie and Scout are getting motivated or demotivated. Initially they get added into the probation room and from there they can move depending on that. 
+
+Usage scorecard (Wispr Flow → Insights):
+
+![Wispr Flow Insights](docs/wispr-insights.png)
+
+---
+
 ## Limitations and honest notes
 
 - **The owner is always admitted.** Each candidate's rule lets its owner through,

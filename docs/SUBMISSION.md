@@ -2,7 +2,7 @@
 
 **Project:** Probation
 **Track:** 01 — Best Business Workflow
-**Side entries:** #HowISwitch post (optional: Best Blog, `docs/BLOG.md`)
+**Side entries:** Code with Wispr (scorecard: `docs/wispr-insights.png`), #HowISwitch post
 **Repo:** https://github.com/mukeshkbj/probation
 **Demo video:** https://github.com/mukeshkbj/probation/blob/main/docs/probation-demo.mp4 (3 min; a narrated replay of the live run built from Switch's room history)
 **Deadline:** 7 Nov 2026, 11:59 PM IST (18:29 UK)
