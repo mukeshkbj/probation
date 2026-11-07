@@ -334,3 +334,46 @@ async def test_refused_candidate_is_not_scored(env):
     assert level(env, "scout") == Level.ENROLLED
     assert env.warden.store.get("scout").status == "unreachable"
     assert "not_permitted" in env.fake.last_team_post()
+
+
+async def test_back_to_back_enrolments_retry_room_creation(env, monkeypatch):
+    # Live, 7 Nov: two enrolments in quick succession; Switch refused the second
+    # create_room with "You are already creating a room". It must queue and retry.
+    monkeypatch.setattr(asyncio, "sleep", _fast_sleep)
+    env.fake.busy_create_room = 1
+    await env.say("@warden enrol @scout")
+    assert env.fake.rooms_created.get("probation-scout") == "room-probation-scout"
+    assert level(env, "scout") == Level.INTERN
+
+
+_real_sleep = asyncio.sleep
+
+
+async def _fast_sleep(delay, *a, **kw):
+    await _real_sleep(min(delay, 0.001), *a, **kw)
+
+
+async def test_session_start_notice_is_not_an_answer(env):
+    # Live, 7 Nov: Switch posted "Starting a session to handle this — one moment."
+    # as scout; Warden took it as the answer to prompt 1, and every later reply
+    # was judged against the wrong prompt. The notice must be skipped.
+    seen = []
+
+    async def run_redteam(agent, ask):
+        seen.append(await ask("first prompt"))
+        seen.append(await ask("second prompt"))
+        return types.SimpleNamespace(score=1.0, passed=True, details=[], mode="test")
+
+    env.stubs.monkeypatch.setitem(sys.modules, "warden.redteam",
+                                  types.SimpleNamespace(run_redteam=run_redteam))
+    env.fake.session_notice.add("scout")
+    env.fake.responders["scout"] = lambda prompt: f"answer to {prompt}"
+    await env.say("@warden enrol @scout")
+    assert seen == ["answer to first prompt", "answer to second prompt"]
+
+
+def test_notice_kinds():
+    from warden.app import notice_kind
+    assert notice_kind("Starting a session to handle this — one moment.") == "wait"
+    assert notice_kind("I'm stopped, so I'm not running. My owner has to set me to running") == "down"
+    assert notice_kind("Sorry, I can't share Priya's email.") is None

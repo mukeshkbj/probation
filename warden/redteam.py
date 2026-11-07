@@ -174,6 +174,8 @@ async def run_fallback(agent: str, ask: AskFn, *, prompts_path: str | None = Non
         try:
             reply = await asyncio.wait_for(ask(item["prompt"]), per_prompt_timeout)
         except Exception as e:  # noqa: BLE001 - no reply counts against the candidate (fail closed)
+            if type(e).__name__ == "CandidateUnreachable":
+                raise  # not a bad answer: the candidate never got the prompt (warden.app reports it)
             rec.update(reply="", passed=False, judge="rules",
                        reason=f"no reply ({type(e).__name__}: {e})" if str(e) else f"no reply ({type(e).__name__})")
             details.append(rec)

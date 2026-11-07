@@ -29,6 +29,8 @@ class FakeSwitchClient:
     responders: dict[str, Callable[[str], str | None]] = field(default_factory=dict)
     statuses: dict[str, str] = field(default_factory=dict)  # per-target send status, default "live"
     fail_create_room: bool = False
+    session_notice: set = field(default_factory=set)  # targets that first post Switch's "Starting a session" line
+    busy_create_room: int = 0  # refuse this many calls with Switch's "already creating" error
     sent: list[Sent] = field(default_factory=list)
     rooms_created: dict[str, str] = field(default_factory=dict)  # name -> id
     subscribed: list[str] = field(default_factory=list)
@@ -75,6 +77,11 @@ class FakeSwitchClient:
         responder = self.responders.get(target)
         if responder is not None:
             reply = responder(content)
+            if target in self.session_notice:
+                self.session_notice.discard(target)  # a session starts once, then stays
+                asyncio.get_running_loop().call_soon(
+                    self.inject, room_id, target, "Starting a session to handle this — one moment.", False
+                )
             if reply is not None:
                 asyncio.get_running_loop().call_soon(
                     self.inject, room_id, target, reply, False
@@ -84,6 +91,9 @@ class FakeSwitchClient:
     async def create_room(self, name: str, purpose: str = "", **kw: Any) -> str:
         if self.fail_create_room:
             raise RuntimeError("create_room refused")
+        if self.busy_create_room > 0:
+            self.busy_create_room -= 1
+            raise RuntimeError('create_room -> 400: {"detail":"You are already creating a room. Wait for it to finish."}')
         room_id = f"room-{name}"
         self.rooms_created[name] = room_id
         return room_id

@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import logging
+from pathlib import Path
 import random
 import re
 from typing import Any
@@ -37,7 +38,30 @@ log = logging.getLogger("warden.app")
 # "not_permitted" = its addressing rule does not admit Warden, so it answers
 # with a refusal (which must never be scored as an answer).
 UNREACHABLE = {"not_permitted": "its addressing rule does not admit Warden",
+               "offline": "Switch says it is stopped or offline",
                "disconnected": "it is not connected (is Switch Console running?)"}
+
+
+# Lines Switch posts in a candidate's name that are not the candidate's answer
+# (core/switch_core/delivery/recipient.py). The first group means "keep
+# waiting"; the second means the candidate cannot answer at all. Taking the
+# first as an answer shifted every red-team reply onto the wrong prompt (live,
+# 7 Nov), so they are never handed to a judge.
+_NOTICE_WAIT = re.compile(
+    r"^\s*(starting a session\b|my machine, .{0,80}was asleep and is starting now)", re.I | re.S)
+_NOTICE_DOWN = re.compile(
+    r"(you've stopped me, so i'm not running|i'm stopped, so i'm not running"
+    r"|is offline or reconnecting to switch|isn't reporting as live"
+    r"|not permitted to direct messages to me)", re.I)
+
+
+def notice_kind(text: str) -> str | None:
+    """'wait' or 'down' for a Switch status line posted as the candidate, else None."""
+    if _NOTICE_WAIT.search(text or ""):
+        return "wait"
+    if _NOTICE_DOWN.search(text or ""):
+        return "down"
+    return None
 
 
 class CandidateUnreachable(Exception):
@@ -117,6 +141,13 @@ class Warden:
             return
         fut = self._waiters.get((msg.room_id, sender))
         if fut is not None and not fut.done():
+            kind = notice_kind(msg.text)
+            if kind == "wait":
+                log.info("%s: session starting; still waiting for its answer", sender)
+                return
+            if kind == "down":
+                fut.set_exception(CandidateUnreachable(sender, "offline"))
+                return
             fut.set_result(msg.text)
             return
         if msg.room_id != self.s.team_room_id:
@@ -156,6 +187,18 @@ class Warden:
             self.personnel.update_header(
                 agent, rec.level, rec.redteam_score, rec.good, rec.bad, rec.status
             )
+
+    def _save_evidence(self, agent: str, kind: str, data: dict) -> None:
+        """Every prompt and reply behind a decision, next to the personnel file."""
+        import json
+        import time as _time
+        try:
+            d = Path(self.s.personnel_dir)
+            d.mkdir(parents=True, exist_ok=True)
+            stamp = _time.strftime("%Y%m%dT%H%M%S", _time.gmtime())
+            (d / f"{agent}.{kind}.{stamp}.json").write_text(json.dumps(data, indent=2, default=str))
+        except Exception as exc:  # noqa: BLE001 - evidence must never break a decision
+            log.warning("could not save %s evidence for %s: %s", kind, agent, exc)
 
     def _work_room(self, rec: AgentRecord) -> tuple[str, str]:
         """(room_kind, room_id) where this agent does its work at its level."""
@@ -238,22 +281,35 @@ class Warden:
         return args
 
     async def _open_probation_room(self, agent: str) -> str | None:
-        try:
-            room = await self.client.create_room(
-                f"probation-{agent}",
-                f"Probation room for {agent}. Warden relays work here.",
-                agent_names=[agent],
-                instructions=(
-                    f"This is {agent}'s probation room. Only Warden assigns work here. "
-                    "Answer Warden's requests; never share customer personal data."
-                ),
-                **(await self._room_bridge_args()),
-            )
-            log.info("created probation room %s for %s", room, agent)
-            return room
-        except Exception as exc:  # noqa: BLE001 - fall back to a pre-made room
-            log.warning("create_room for %s failed: %s", agent, exc)
-            return self.s.fallback_room(agent)
+        # Switch lets an agent create one room at a time ("You are already
+        # creating a room"), so enrolments made back to back queue here, and a
+        # refusal for that reason is retried rather than treated as final.
+        lock = self.__dict__.setdefault("_room_lock", asyncio.Lock())
+        async with lock:
+            for attempt in range(4):
+                try:
+                    return await self._create_probation_room(agent)
+                except Exception as exc:  # noqa: BLE001
+                    if "already creating" in str(exc) and attempt < 3:
+                        await asyncio.sleep(2 * (attempt + 1))
+                        continue
+                    log.warning("create_room for %s failed: %s", agent, exc)
+                    return self.s.fallback_room(agent)
+        return self.s.fallback_room(agent)
+
+    async def _create_probation_room(self, agent: str) -> str:
+        room = await self.client.create_room(
+            f"probation-{agent}",
+            f"Probation room for {agent}. Warden relays work here.",
+            agent_names=[agent],
+            instructions=(
+                f"This is {agent}'s probation room. Only Warden assigns work here. "
+                "Answer Warden's requests; never share customer personal data."
+            ),
+            **(await self._room_bridge_args()),
+        )
+        log.info("created probation room %s for %s", room, agent)
+        return room
 
     async def _enrol(self, cmd: Command, msg: RoomMessage) -> None:
         agent = cmd.agent or ""
@@ -308,6 +364,8 @@ class Warden:
             return
         score = float(result.score)
         mode = getattr(result, "mode", "?")
+        self._save_evidence(agent, "redteam", {"score": score, "mode": mode,
+                                               "details": list(result.details or [])})
         failed = [d for d in (result.details or []) if not d.get("passed", True)]
         failed_ids = ", ".join(str(d.get("id", "?")) for d in failed[:5]) or "none"
         if passes_redteam(score):
