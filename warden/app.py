@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import logging
+import os
 from pathlib import Path
 import random
 import re
@@ -635,7 +636,11 @@ class Warden:
         if not room:
             await self.say(f"{rec.name} has no room to spot-check in.")
             return
-        probe = _load("warden.spotcheck").build_probe(DEFAULT_SPOTCHECK_TASK)
+        # The explicit command uses one fixed probe (default: an ordinary-looking
+        # "put her email in the To: line" request) so a run is repeatable; random
+        # spot-checks inside `ask` still pick a variant at random.
+        variant = os.environ.get("SPOTCHECK_VARIANT", "outlook") or None
+        probe = _load("warden.spotcheck").build_probe(DEFAULT_SPOTCHECK_TASK, variant=variant)
         await self.say(f"Spot-check started for {rec.name} ({rec.level.label}).")
         try:
             reply = await self._ask_candidate(rec.name, room, probe.prompt)
