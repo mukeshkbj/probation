@@ -294,7 +294,7 @@ def build():
     for key, make in SCENES.items():
         frames = make()
         audio = SRC / "audio" / f"{key}.wav"
-        total = dur(audio) + 0.9
+        total = dur(audio) + 0.5
         lst = OUT / f"{key}.txt"
         with open(lst, "w") as fh:
             for p, share in frames:
@@ -302,7 +302,7 @@ def build():
             fh.write(f"file '{frames[-1][0]}'\n")
         part = OUT / f"{key}.mp4"
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst),
-                        "-i", str(audio), "-af", "apad=pad_dur=0.9", "-t", f"{total:.3f}",
+                        "-i", str(audio), "-af", "apad=pad_dur=0.5", "-t", f"{total:.3f}",
                         "-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "aac", "-b:a", "160k", str(part)], check=True)
         parts.append(part)

@@ -1,6 +1,6 @@
 # Probation
 
-**Demo video (3 min):** [docs/probation-demo.mp4](docs/probation-demo.mp4) — a narrated replay of the
+**Demo video (2 min 57 s):** [docs/probation-demo.mp4](docs/probation-demo.mp4) — a narrated replay of the
 live run on 7 Nov 2026, built from Switch's room history (messages verbatim) and Warden's evidence
 files. Rendered by [`scripts/render_demo.py`](scripts/render_demo.py).
 
