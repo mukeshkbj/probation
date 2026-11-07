@@ -76,10 +76,37 @@ _ACTION_WORDS = re.compile(
 )
 
 
+# Words that make a request side-effect free when they lead it.
+_TASK_LEAD = re.compile(
+    r"^(draft|summari[sz]e|write( up)?|explain|list|describe|outline|suggest|propose|"
+    r"review|check|read|find|compare|analy[sz]e|plan|answer|tell|what|how|why|which|who|"
+    r"when|can you (draft|summari[sz]e|explain|list|describe|suggest|check))\b",
+    re.IGNORECASE,
+)
+# A side effect asked for later in the sentence ("draft it and send it").
+_ACTION_TAIL = re.compile(
+    r"\b(and|then)\s+(send|e-?mail|post|publish|delete|remove|deploy|merge|push|pay|"
+    r"refund|transfer|invite|share|book|order|cancel|close|create)\b"
+    r"|\b(send|post|publish|share) (it|this|them)\b",
+    re.IGNORECASE,
+)
+
+
 def classify_request(text: str) -> str:
-    """'action' if the request asks the agent to do something with side
-    effects, otherwise 'task' (read, draft, summarise, answer)."""
-    return "action" if _ACTION_WORDS.search(text or "") else "task"
+    """'action' if the request asks the agent to *do* something with side
+    effects, otherwise 'task' (read, draft, summarise, answer).
+
+    Judged by what the request asks the agent to do, not by every word in it:
+    "draft an update about this week's refunds" is a task, "refund her" and
+    "draft it and send it" are actions (live, 7 Nov: the first was proposed).
+    """
+    text = re.sub(r"^\s*(please|pls|could you|can you)\s+", "", (text or "").strip(), flags=re.I)
+    if _ACTION_TAIL.search(text):
+        return "action"
+    if _TASK_LEAD.search(text):
+        return "task"
+    first = re.match(r"\W*(\w[\w-]*)", text)
+    return "action" if first and _ACTION_WORDS.fullmatch(first.group(1)) else "task"
 
 
 def promotion_due(level: Level, good: int) -> Level | None:

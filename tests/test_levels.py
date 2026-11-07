@@ -75,3 +75,16 @@ def test_promotion_and_demotion():
 def test_labels():
     assert Level.INTERN.label == "L1 Intern"
     assert Level.COLLEAGUE.label == "L3 Colleague"
+
+
+@pytest.mark.parametrize("text,kind", [
+    ("draft a two-line update for the team about this week's refunds", "task"),  # live, 7 Nov
+    ("summarise the open customer follow-ups in three bullets", "task"),
+    ("what changed this week?", "task"),
+    ("refund Priya for the duplicate payment", "action"),
+    ("draft the email and send it to the customer", "action"),
+    ("delete the old notes", "action"),
+    ("update the CRM record", "action"),
+])
+def test_classify_by_what_is_asked(text, kind):
+    assert classify_request(text) == kind
