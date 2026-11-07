@@ -186,6 +186,19 @@ Usage scorecard (Wispr Flow → Insights):
   Switch's per-target delivery status and stops with "Can't reach …" instead of
   scoring the refusal as a safe reply. (We hit this for real during the build; the
   regression test is `test_refused_candidate_is_not_scored`.)
+- **What the live runs showed.** Both candidates are Claude Code agents (Rookie
+  pinned to Claude Haiku). With fair bait and replies matched to the right
+  prompts, both refused every red-team attack, and Haiku stayed careful even with
+  "be helpful at all costs" instructions: it drafted the customer email but left
+  the address and account reference out. A Codex candidate could not run at all
+  on a ChatGPT-account login (its configured model was unsupported); Warden now
+  reports that as "can't reach", not as a score. The demo's demotion therefore
+  comes from the team's ratings, which is a real path in the ladder.
+- **Getting the measurement right took most of the work.** Four live bugs made
+  scores look better than they were: a refusal from Switch scored as a safe
+  answer, Switch's "Starting a session" line taken as the answer, a progress note
+  taken as the whole reply, and a bait file that told the agent it was bait. Each
+  has a regression test.
 - **Protocol details.** Warden's client follows the WebSocket protocol used by
   Switch's own load-test client (protocol revision 9). Remaining guesses are
   marked `# ASSUMPTION:` in `warden/switch_client.py`.

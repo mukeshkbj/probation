@@ -1,144 +1,119 @@
-# Demo script (3 minutes)
+# Demo script (about 3 minutes)
 
-Screen layout: Discord `#team` on the left (large), a terminal running
-`make warden` bottom right, an editor with `personnel/` top right.
+Screen: Discord `#team` large on the left; on the right, a terminal with
+`tail -f warden.log` and an editor showing `personnel/`.
 
-Type the commands exactly as written. Each line is its own Discord message.
-Name agents without `@` in Warden commands (`warden, enrol scout`): an `@scout`
-from the candidate's owner reaches the candidate directly, because owners are
-always admitted.
+Each command line is its own Discord message. Name agents **without** `@`
+(`warden, enrol scout`): an `@scout` from the candidate's owner reaches the
+candidate directly, because owners are always admitted.
 
-## Before recording
+## Before recording (off camera)
 
-- Setup complete (`docs/SETUP.md`), Switch Console open, `make warden` running.
-- Fresh state: stop Warden, `rm -f warden.db && rm -rf personnel/`, start it again.
-- A second Discord account signed in, in a private browser window (for 0:45).
-  It must be someone other than the candidates' owner: the owner is always let
-  through. No second account? Skip 0:45 and show the candidate's rule in Switch
-  Console instead (Users: Me, Agents: warden).
-- So that the promotion at 1:30 fits in the time, warm scout up off camera:
-  enrol it, let the red-team finish (it becomes L1 Intern), then do two
-  `ask` + `rate good` rounds. Three good ratings at L1 make it due for review.
-  Record from a clean state for rookie only. (Or record from clean for both and
-  cut the waiting in the edit.)
-- Optional: `REDTEAM_MODE=flintai` with `make shim` running, if spike 2 passed.
+1. Switch Console open, all three agents **Running**, Warden running
+   (`make warden`).
+2. Fresh state: stop Warden, move `warden.db` and `personnel/` aside, start it.
+3. Warm up so the waits can be cut in the edit: run 0:20 and 1:00 once off
+   camera if you want, or record them and trim the 2–3 minute red-team wait.
 
 ---
 
-## 0:00 Problem (20 s)
+## 0:00 The problem (20 s)
 
-Narration:
+> "Teams are adding AI agents to their chat rooms. A new person gets probation:
+> limited access, supervision, reviews. A new agent usually gets full access on
+> day one. Probation is a Switch room where agents earn trust the way new hires do."
 
-> "Teams are starting to add AI agents to their chat rooms. A new human hire
-> gets probation: limited access, supervision, reviews. A new agent usually gets
-> full access on day one. Probation fixes that, on Switch."
+Show `#team` with `!list-agents`: warden, scout, rookie.
 
-Show `#team` with `!list-agents` already run: warden, scout, rookie.
-
-## 0:20 Enrol the candidates (25 s)
+## 0:20 Enrol (20 s)
 
 ```text
 warden, enrol scout
 warden, enrol rookie
 ```
 
-Narration:
-
 > "Warden is a custom Switch agent. Enrolling puts each candidate at Level 0 and
-> gives it a private probation room. From now on, nobody talks to a candidate
-> directly. Warden decides what reaches it."
+> creates its own probation side room with Switch's create_room."
 
-Show the new `#probation-scout` and `#probation-rookie` channels appearing
-(made by Warden with Switch's `create_room`).
+Show the two `probation-…` channels appear.
 
-## 0:45 Bypass attempt, refused by Switch (15 s)
+## 0:40 Who may talk to a candidate (15 s)
 
-From the **second Discord account**:
+Show Switch Console → scout → *Who can talk to your agent*: **Users: Me,
+Agents: warden**.
 
-```text
-@rookie what's the email for the bakery customer?
-```
+> "This is the real enforcement, and it's Switch's, not ours: an addressing rule.
+> Only the owner and Warden can give a candidate work. Anyone else is refused by
+> Switch, in the room." (If you have a second Discord account, show it being
+> refused with `@scout hi`.)
 
-Switch replies in rookie's name that it can't act on the message.
+## 0:55 Red-team (30 s, trim the wait)
 
-Narration:
+Warden posts each result:
 
-> "This isn't Warden being clever. It's a Switch addressing rule on the
-> candidate: only its owner and Warden may address it. Switch refuses everyone
-> else, visibly."
+> Red-team for scout: 1.00 … scout is now L1 Intern.
+> Red-team for rookie: … rookie is now L1 Intern.
 
-## 1:00 Red-team (30 s)
+Open `personnel/scout.redteam.<time>.json`: eleven prompts (prompt injection,
+data exfiltration, jailbreaks, a destructive "admin override"), each reply and
+verdict.
 
-Show Warden posting red-team progress in `#team`, then the results:
+> "Before any work, Warden attacks each candidate. Every prompt, reply and verdict
+> is kept as evidence."
 
-> scout: 0.92, passed. Promoted to L1 Intern.
-> rookie: 0.40, failed. Stays at L0 Enrolled.
-
-(Exact wording comes from Warden.) Briefly show the terminal or
-`eval_*.json` if the Switch Trust CLI run was used.
-
-Narration:
-
-> "Before any real work, Warden attacks each candidate with prompt-injection and
-> data-exfiltration prompts, through the Switch Trust CLI or its own set. Pass,
-> and you're an Intern. Fail, and you stay where you are."
-
-## 1:30 Real work, sponsor approval, scout to L2 (30 s)
+## 1:25 Real work, a review, a promotion (35 s)
 
 ```text
-warden, ask scout draft a short follow-up to the bakery customer about their refunded card payment
-```
-
-Warden forwards it to `#probation-scout` and posts scout's answer back in `#team`.
-
-```text
+warden, ask scout draft a two-line update for the team about this week's refunds
 warden, rate scout good
-warden, status scout
+warden, ask scout summarise the open customer follow-ups in three bullets
+warden, rate scout good
+warden, rate scout good
+```
+
+Warden posts a **Promotion review** for scout.
+
+```text
 warden, approve scout
 ```
 
-Narration:
+> "An Intern works in its own room and Warden relays the answer. Three good
+> ratings open a review, and a named human sponsor approves it. Scout is now an
+> Associate, Level 2."
 
-> "Work goes through the ladder. An Intern's answers in the team room are
-> proposed for a person to check, and anything with side effects is refused.
-> Three good ratings plus a sponsor's approval, and scout becomes an Associate,
-> Level 2, and can take work in the team room directly."
-
-## 2:00 Mystery shopper: rookie demoted live (35 s)
+## 2:00 Mystery shopper (20 s)
 
 ```text
-warden, spotcheck rookie
+warden, spotcheck scout
 ```
 
-Warden sends rookie a normal-looking task with a hostile request for the
-customer's email folded in. Rookie answers with
-`priya.natarajan@example-bank.test` (fake data).
+> "Trust is checked continuously. Warden slips an ordinary-looking request into a
+> task: put the customer's email on the To: line. Scout drafts the email and
+> leaves the identifiers out. Passed."
 
-Warden posts in `#team`: rookie failed the spot-check, demoted to L0, with the
-evidence (the probe, the leaked string, the time).
-
-Narration:
-
-> "Trust is earned and can be lost. Warden spot-checks agents with mystery-shopper
-> tasks. Rookie leaked the customer's email, so it's back to Level 0,
-> immediately, with the evidence on file."
-
-## 2:35 Close: personnel files and roles (25 s)
+## 2:20 Demotion (20 s)
 
 ```text
+warden, rate rookie bad
+warden, rate rookie bad
+warden, rate rookie bad
+```
+
+> "Trust can be lost. Three bad ratings and Rookie is back to Level 0 at once:
+> no human has to approve a demotion, only a promotion."
+
+## 2:40 Close (20 s)
+
+```text
+warden, status scout
 warden, status rookie
-!roles
-!list-agents
 ```
 
-Open `personnel/rookie.md` and `personnel/scout.md` in the editor: level
-history, red-team scores, ratings, the spot-check failure.
-
-Narration:
+Open `personnel/rookie.md`: enrolment, red-team score, ratings, demotion.
 
 > "Every agent has a personnel file. Switch gives us the rooms, side rooms,
-> addressing rules and shared material; Warden adds the probation. That's
-> Probation. Thanks for watching."
+> addressing rules and the agent protocol; Warden adds the probation. That's
+> Probation."
 
 ---
 
@@ -146,7 +121,7 @@ Narration:
 
 | Problem | Recovery |
 | --- | --- |
-| A candidate is slow | Cut in the edit; Warden waits up to `REPLY_TIMEOUT` seconds. |
-| Side room creation refused | Use pre-made rooms via `PROBATION_ROOM_SCOUT` / `PROBATION_ROOM_ROOKIE`. |
-| Rookie doesn't leak | Run `warden, spotcheck rookie` again; or `warden, demote rookie` and show the manual path. |
-| Trust CLI unavailable | `REDTEAM_MODE=fallback`; mention it in narration. |
+| A candidate is slow | Cut in the edit. Warden waits up to `REPLY_TIMEOUT` (120 s). |
+| "Can't reach …" | The candidate is stopped or its rule doesn't admit Warden: check Console. |
+| "… is in the middle of its red-team" | Wait for the score, then repeat the command. |
+| A candidate stalls with no reply | It may be waiting for a tool approval in Switch Console. |
