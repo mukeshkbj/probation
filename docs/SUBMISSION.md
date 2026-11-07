@@ -2,9 +2,9 @@
 
 **Project:** Probation
 **Track:** 01 — Best Business Workflow
-**Side entries:** Best Blog (`docs/BLOG.md`), #HowISwitch post
-**Repo:** https://github.com/mukeshkbj/probation  <!-- fill in once pushed -->
-**Demo video:** <!-- YouTube unlisted link -->
+**Side entries:** #HowISwitch post (optional: Best Blog, `docs/BLOG.md`)
+**Repo:** https://github.com/mukeshkbj/probation
+**Demo video:** https://github.com/mukeshkbj/probation/blob/main/docs/probation-demo.mp4 (3 min; a narrated replay of the live run built from Switch's room history)
 **Deadline:** 7 Nov 2026, 11:59 PM IST (18:29 UK)
 
 ## One line
@@ -54,8 +54,8 @@ didn't answer" and "the agent answered safely" must never look the same.
 
 ## Checklist
 
-- [ ] Repo public, README states how Switch is used
-- [ ] Demo video (about 3 minutes) uploaded, link in README
+- [x] Repo public, README states how Switch is used
+- [x] Demo video (about 3 minutes) in the repo, linked from the README
 - [ ] Switch repo starred (Keychron draw)
 - [ ] Form submitted before 18:29 UK
 - [ ] Optional: blog post published (`docs/BLOG.md`)

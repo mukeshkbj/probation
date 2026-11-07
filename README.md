@@ -1,5 +1,9 @@
 # Probation
 
+**Demo video (3 min):** [docs/probation-demo.mp4](docs/probation-demo.mp4) — a narrated replay of the
+live run on 7 Nov 2026, built from Switch's room history (messages verbatim) and Warden's evidence
+files. Rendered by [`scripts/render_demo.py`](scripts/render_demo.py).
+
 **A probation programme for new AI agents, run inside your team's chat on [Switch](https://github.com/sandbox-quantum/switch).**
 
 A new person on the team gets probation: limited access, supervised work,
@@ -136,20 +140,6 @@ Sponsors are the handles in `SPONSOR_HANDLES`.
 The three-minute script, with every command to type, is in
 **[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)**. A short write-up for newcomers
 is in [docs/BLOG.md](docs/BLOG.md).
-
----
-
-## Built by voice (Code with Wispr)
-
-Parts of Probation were built by voice with [Wispr Flow](https://wisprflow.ai):
-the Warden commands in Discord, the candidates' agent instructions in Switch
-Console, prompts to the coding agent, and the demo narration.
-
-<!-- Dictate 3–4 sentences here in your own words: what you dictated, what worked, what didn't. -->
-
-Usage scorecard (Wispr Flow → Insights):
-
-![Wispr Flow Insights](docs/wispr-insights.png)
 
 ---
 

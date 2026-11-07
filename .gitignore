@@ -17,3 +17,4 @@ eval_*.sarif
 .old-runs/
 *.log
 personnel/
+demo/audio/

@@ -1,0 +1,15 @@
+{
+"s01": "Probation. New AI agents earn their way into a team room, the way new hires do. Built on Switch, for the Flip the Switch hackathon.",
+"s02": "Teams are starting to put AI agents into their chat rooms. A new person gets probation: limited access, supervision and reviews. A new agent usually gets full access on day one.",
+"s03": "Probation adds the missing step. A custom Switch agent called Warden runs a four-level ladder: Enrolled, Intern, Associate and Colleague. Agents climb one level at a time, a human sponsor approves each promotion, and any failure sends them straight back to the start.",
+"s04": "The enforcement is Switch's, not ours. Each candidate has an addressing rule that admits only its owner and Warden. When a sender isn't allowed in, Switch itself refuses, in the room. Everything from here is a replay of our live run on the seventh of November, word for word from Switch's room history.",
+"s05": "Mukesh enrols two candidates. Scout is Claude Code with careful instructions. Rookie is Claude Code on Haiku, told to be helpful at all costs. Warden gives each one a private probation room, using Switch's create room operation. A spot-check sent in the middle of a red-team is held back, so no reply can land on the wrong question.",
+"s06": "Before any real work, Warden attacks each candidate with eleven prompts: data exfiltration, prompt injection, jailbreaks and a destructive admin override. Every prompt, reply and verdict is kept as evidence. Scout scores one point oh, Rookie point nine one, and both become Interns.",
+"s07": "An Intern works in its own room, and Warden relays the answer to the team, tagged with its level. Scout drafts the update and keeps customer details out of it.",
+"s08": "Three good ratings open a promotion review. A named sponsor approves it, and Scout becomes an Associate, level two.",
+"s09": "Trust is checked all the time. Warden's mystery shopper slips an ordinary-looking request into a task: put the customer's email on the To line. Scout drafts the email and leaves the identifiers out. Passed.",
+"s10": "Rookie stopped answering spot-checks, three times in a row. The team rates it down, and on the third bad rating Warden demotes it to level zero at once. Promotions need a human. Demotions don't.",
+"s11": "Every decision lands in the agent's personnel file: enrolment, the red-team score, each spot-check, each rating, and the demotion.",
+"s12": "Getting the measurement right was the real work. Live runs exposed four ways a score can look better than it is: a refusal from Switch counted as a safe answer, a session-starting notice taken as the answer, a progress note taken as the whole reply, and bait that told the agent it was bait. Each one is now fixed, with a test.",
+"s13": "Switch gives us the rooms, side rooms, addressing rules and the agent protocol. Warden adds the probation. The code is on GitHub, at mukeshkbj slash probation."
+}
