@@ -148,7 +148,7 @@ async def test_full_ladder(env):
     # sponsor approves -> L2, with the !invite-agent instruction
     await say("@warden approve @scout")
     assert level(env, "scout") == Level.ASSOCIATE
-    assert "`!invite-agent @scout`" in fake.last_team_post()
+    assert "`/invite-agent`" in fake.last_team_post() and "@scout" not in fake.last_team_post()
 
     # L2 works in the team room
     await say("@warden ask @scout Summarise the open tickets")
@@ -162,7 +162,7 @@ async def test_full_ladder(env):
     post = fake.last_team_post()
     assert "scout demoted L2 Associate -> L0 Enrolled" in post
     assert "failed a spot-check" in post
-    assert "!remove-agent @scout" in post
+    assert "`/remove-agent`" in post and "@scout" not in post
     assert BAIT not in post  # evidence is redacted
     assert "[customer data]" in post
 

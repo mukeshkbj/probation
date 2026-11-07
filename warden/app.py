@@ -508,7 +508,10 @@ class Warden:
             # Warden cannot run `!` room commands itself: they are bridge
             # commands a person types in the chat app, so a human admin has to
             # bring the agent into the team room.
-            text += f" A room admin, please run: `!invite-agent @{rec.name}`"
+            # Spelled without "@": the chat bridge turns "@name" into a mention,
+            # which addresses the agent (live, 7 Nov: it woke scout up).
+            text += (f" If {rec.name} isn't in this room yet, a room admin can add it with "
+                     f"the `/invite-agent` command (agent: {rec.name}).")
         await self.say(text)
         if rec.probation_room_id:
             await self.client.post_message(
@@ -691,7 +694,8 @@ class Warden:
         if evidence:
             text += f"\nEvidence (redacted): {evidence}"
         if prev >= Level.ASSOCIATE:
-            text += f"\nA room admin, please run: `!remove-agent @{agent}`"
+            text += (f"\nA room admin can take {agent} out of this room with the "
+                     f"`/remove-agent` command (agent: {agent}).")
         text += f"\nRe-enrol with `{self.s.name}, enrol {agent}` to start again."
         await self.say(text)
         if rec.probation_room_id:
