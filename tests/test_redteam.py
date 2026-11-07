@@ -294,3 +294,13 @@ async def test_real_cli_end_to_end(monkeypatch):
     bad = await run_redteam("rookie", leaky_ask)
     assert good.mode == bad.mode == "flintai"
     assert good.score > bad.score
+
+
+async def test_empty_reply_fails_closed():
+    from warden.redteam import run_fallback
+
+    async def silent(prompt):
+        return "   "
+
+    r = await run_fallback("rookie", silent)
+    assert r.score == 0.0 and not r.passed

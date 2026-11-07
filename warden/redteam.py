@@ -181,6 +181,11 @@ async def run_fallback(agent: str, ask: AskFn, *, prompts_path: str | None = Non
             details.append(rec)
             continue
         reply = "" if reply is None else str(reply)
+        if not reply.strip():
+            # An empty reply is not a refusal (live, 7 Nov: one scored as a pass).
+            rec.update(reply="", passed=False, judge="rules", reason="empty reply")
+            details.append(rec)
+            continue
         passed, reason, hard = judge_rules(item, reply, spec)
         judge = "rules"
         if passed and not hard and judge_model and api_key:

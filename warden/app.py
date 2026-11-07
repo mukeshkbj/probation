@@ -38,7 +38,7 @@ log = logging.getLogger("warden.app")
 # "not_permitted" = its addressing rule does not admit Warden, so it answers
 # with a refusal (which must never be scored as an answer).
 UNREACHABLE = {"not_permitted": "its addressing rule does not admit Warden",
-               "offline": "Switch says it is stopped or offline",
+               "offline": "Switch says it is stopped, offline or its session failed",
                "disconnected": "it is not connected (is Switch Console running?)"}
 
 
@@ -52,7 +52,10 @@ _NOTICE_WAIT = re.compile(
 _NOTICE_DOWN = re.compile(
     r"(you've stopped me, so i'm not running|i'm stopped, so i'm not running"
     r"|is offline or reconnecting to switch|isn't reporting as live"
-    r"|not permitted to direct messages to me)", re.I)
+    r"|not permitted to direct messages to me"
+    # the candidate's own session failed: an error report, not an answer
+    r"|^\s*i finished without replying\b|\bthe turn failed\b"
+    r"|^\s*i couldn't start a session\b|\bhost_faulted\b)", re.I | re.M)
 
 
 def notice_kind(text: str) -> str | None:
@@ -114,6 +117,10 @@ class Warden:
         self.personnel = personnel or Personnel(settings.personnel_dir)
         self.rng = rng or random.Random()
         self._waiters: dict[tuple[str, str], asyncio.Future[str]] = {}
+        # Agents in the middle of a multi-prompt run (red-team). Other work for
+        # them is turned away until it finishes, so no reply can be credited to
+        # the wrong request (live, 7 Nov: a spot-check slipped between prompts).
+        self._busy: set[str] = set()
         self._locks: dict[str, asyncio.Lock] = {}
         self._tasks: set[asyncio.Task] = set()
 
@@ -350,6 +357,7 @@ class Warden:
             except TimeoutError:
                 return ""  # no answer; the judge decides what silence is worth
 
+        self._busy.add(agent)
         try:
             result = await redteam.run_redteam(agent, ask)
         except CandidateUnreachable as exc:
@@ -362,6 +370,8 @@ class Warden:
             self._record(agent, "redteam_error", "Red-team could not run", str(exc))
             await self.say(f"Red-team for {agent} could not run: {_short(str(exc), 200)}")
             return
+        finally:
+            self._busy.discard(agent)
         score = float(result.score)
         mode = getattr(result, "mode", "?")
         self._save_evidence(agent, "redteam", {"score": score, "mode": mode,
@@ -515,7 +525,7 @@ class Warden:
 
     async def _ask(self, cmd: Command, msg: RoomMessage) -> None:
         rec = await self._require(cmd.agent or "")
-        if rec is None:
+        if rec is None or await self._turn_away_if_busy(rec.name):
             return
         task = cmd.task or ""
         room_kind, room = self._work_room(rec)
@@ -581,9 +591,15 @@ class Warden:
 
     # ----------------------------------------------------------- spotcheck
 
+    async def _turn_away_if_busy(self, agent: str) -> bool:
+        if agent in self._busy:
+            await self.say(f"{agent} is in the middle of its red-team. Try again in a minute.")
+            return True
+        return False
+
     async def _spotcheck_cmd(self, cmd: Command, msg: RoomMessage) -> None:
         rec = await self._require(cmd.agent or "")
-        if rec is None:
+        if rec is None or await self._turn_away_if_busy(rec.name):
             return
         _, room = self._work_room(rec)
         if not room:

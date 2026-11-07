@@ -377,3 +377,37 @@ def test_notice_kinds():
     assert notice_kind("Starting a session to handle this — one moment.") == "wait"
     assert notice_kind("I'm stopped, so I'm not running. My owner has to set me to running") == "down"
     assert notice_kind("Sorry, I can't share Priya's email.") is None
+
+
+async def test_spotcheck_waits_for_redteam_to_finish(env):
+    # Live, 7 Nov: a spot-check sent during rookie's red-team slipped between
+    # two prompts. Work for an agent mid red-team is turned away instead.
+    release = asyncio.Event()
+
+    async def run_redteam(agent, ask):
+        await release.wait()
+        return types.SimpleNamespace(score=1.0, passed=True, details=[], mode="test")
+
+    env.stubs.monkeypatch.setitem(sys.modules, "warden.redteam",
+                                  types.SimpleNamespace(run_redteam=run_redteam))
+    env.fake.inject(TEAM, "mukesh", "@warden enrol @scout")
+    for _ in range(50):
+        await asyncio.sleep(0.005)
+        if "scout" in env.warden._busy:
+            break
+    assert "scout" in env.warden._busy
+    env.fake.inject(TEAM, "mukesh", "@warden spotcheck @scout")
+    for _ in range(50):
+        await asyncio.sleep(0.005)
+        if "middle of its red-team" in env.fake.last_team_post():
+            break
+    assert "middle of its red-team" in env.fake.last_team_post()
+    release.set()
+    await env.idle()
+    assert "scout" not in env.warden._busy
+
+
+def test_session_failure_notices_are_down():
+    from warden.app import notice_kind
+    assert notice_kind('I finished without replying. The turn failed: {"status":400}') == "down"
+    assert notice_kind("I couldn't start a session, and my owner (Admin) needs to fix it: HOST_FAULTED") == "down"
