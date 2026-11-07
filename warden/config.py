@@ -44,6 +44,10 @@ class Settings:
     judge_model: str = ""
     spotcheck_rate: float = 0.0
     reply_timeout: float = 120.0
+    # After a candidate's first message, how long a pause ends its turn. Agents
+    # may post a progress note before the real answer, so one message is not
+    # always the whole reply (live, 7 Nov).
+    reply_settle: float = 8.0
     # PROBATION_ROOM_<AGENT> fallbacks, used when create_room is refused.
     probation_rooms: dict[str, str] = field(default_factory=dict)
 
@@ -83,5 +87,6 @@ def load_settings(env: dict[str, str] | None = None, dotenv: str | None = ".env"
         judge_model=get("JUDGE_MODEL"),
         spotcheck_rate=float(get("SPOTCHECK_RATE", "0")),
         reply_timeout=float(get("REPLY_TIMEOUT", "120")),
+        reply_settle=float(get("REPLY_SETTLE", "8")),
         probation_rooms=rooms,
     )

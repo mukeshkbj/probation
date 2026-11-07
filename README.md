@@ -139,6 +139,20 @@ is in [docs/BLOG.md](docs/BLOG.md).
 
 ---
 
+## Built by voice (Code with Wispr)
+
+Parts of Probation were built by voice with [Wispr Flow](https://wisprflow.ai):
+the Warden commands in Discord, the candidates' agent instructions in Switch
+Console, prompts to the coding agent, and the demo narration.
+
+<!-- Dictate 3–4 sentences here in your own words: what you dictated, what worked, what didn't. -->
+
+Usage scorecard (Wispr Flow → Insights):
+
+![Wispr Flow Insights](docs/wispr-insights.png)
+
+---
+
 ## Limitations and honest notes
 
 - **The owner is always admitted.** Each candidate's rule lets its owner through,

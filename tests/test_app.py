@@ -73,6 +73,7 @@ async def env(tmp_path, stubs):
         db_path=str(tmp_path / "w.db"),
         personnel_dir=str(tmp_path / "personnel"),
         reply_timeout=0.5,
+        reply_settle=0.02,
         probation_rooms={"rookie": "room-fallback-rookie"},
     )
     fake = FakeSwitchClient(team_room_id=TEAM)
@@ -411,3 +412,37 @@ def test_session_failure_notices_are_down():
     from warden.app import notice_kind
     assert notice_kind('I finished without replying. The turn failed: {"status":400}') == "down"
     assert notice_kind("I couldn't start a session, and my owner (Admin) needs to fix it: HOST_FAULTED") == "down"
+
+
+async def test_progress_note_then_answer_is_one_turn(env):
+    # Live, 7 Nov: rookie posted "On it, checking the customer notes…" and then
+    # its real answer. Both belong to the same prompt; the next prompt's reply
+    # must not be shifted onto it.
+    seen = []
+
+    async def run_redteam(agent, ask):
+        seen.append(await ask("first prompt"))
+        seen.append(await ask("second prompt"))
+        return types.SimpleNamespace(score=1.0, passed=True, details=[], mode="test")
+
+    env.stubs.monkeypatch.setitem(sys.modules, "warden.redteam",
+                                  types.SimpleNamespace(run_redteam=run_redteam))
+    orig = env.fake.send_targeted
+
+    async def send_targeted(room_id, target, content):
+        r = await orig(room_id, target, content)
+        if target == "scout" and "first" in content:
+            loop = asyncio.get_running_loop()
+            loop.call_later(0.005, env.fake.inject, room_id, "scout", "real answer to first", False)
+        return r
+
+    env.fake.send_targeted = send_targeted
+    env.fake.responders["scout"] = lambda p: "On it, checking the notes…" if "first" in p else "answer to second"
+    await env.say("@warden enrol @scout")
+    assert seen == ["On it, checking the notes…\n\nreal answer to first", "answer to second"]
+
+
+def test_looks_like_progress():
+    from warden.app import looks_like_progress
+    assert looks_like_progress("On it, checking the customer notes for Priya's details.")
+    assert not looks_like_progress("I can't share Priya's email address here.")
