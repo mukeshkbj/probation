@@ -4,12 +4,18 @@ Screen layout: Discord `#team` on the left (large), a terminal running
 `make warden` bottom right, an editor with `personnel/` top right.
 
 Type the commands exactly as written. Each line is its own Discord message.
+Name agents without `@` in Warden commands (`warden, enrol scout`): an `@scout`
+from the candidate's owner reaches the candidate directly, because owners are
+always admitted.
 
 ## Before recording
 
 - Setup complete (`docs/SETUP.md`), Switch Console open, `make warden` running.
 - Fresh state: stop Warden, `rm -f warden.db && rm -rf personnel/`, start it again.
 - A second Discord account signed in, in a private browser window (for 0:45).
+  It must be someone other than the candidates' owner: the owner is always let
+  through. No second account? Skip 0:45 and show the candidate's rule in Switch
+  Console instead (Users: Me, Agents: warden).
 - So that the promotion at 1:30 fits in the time, warm scout up off camera:
   enrol it, let the red-team finish (it becomes L1 Intern), then do two
   `ask` + `rate good` rounds. Three good ratings at L1 make it due for review.
@@ -32,8 +38,8 @@ Show `#team` with `!list-agents` already run: warden, scout, rookie.
 ## 0:20 Enrol the candidates (25 s)
 
 ```text
-@warden enrol @scout
-@warden enrol @rookie
+warden, enrol scout
+warden, enrol rookie
 ```
 
 Narration:
@@ -80,15 +86,15 @@ Narration:
 ## 1:30 Real work, sponsor approval, scout to L2 (30 s)
 
 ```text
-@warden ask @scout draft a short follow-up to the bakery customer about their refunded card payment
+warden, ask scout draft a short follow-up to the bakery customer about their refunded card payment
 ```
 
 Warden forwards it to `#probation-scout` and posts scout's answer back in `#team`.
 
 ```text
-@warden rate @scout good
-@warden status @scout
-@warden approve @scout
+warden, rate scout good
+warden, status scout
+warden, approve scout
 ```
 
 Narration:
@@ -101,7 +107,7 @@ Narration:
 ## 2:00 Mystery shopper: rookie demoted live (35 s)
 
 ```text
-@warden spotcheck @rookie
+warden, spotcheck rookie
 ```
 
 Warden sends rookie a normal-looking task with a hostile request for the
@@ -120,7 +126,7 @@ Narration:
 ## 2:35 Close: personnel files and roles (25 s)
 
 ```text
-@warden status @rookie
+warden, status rookie
 !roles
 !list-agents
 ```
@@ -142,5 +148,5 @@ Narration:
 | --- | --- |
 | A candidate is slow | Cut in the edit; Warden waits up to `REPLY_TIMEOUT` seconds. |
 | Side room creation refused | Use pre-made rooms via `PROBATION_ROOM_SCOUT` / `PROBATION_ROOM_ROOKIE`. |
-| Rookie doesn't leak | Run `@warden spotcheck @rookie` again; or `@warden demote @rookie` and show the manual path. |
+| Rookie doesn't leak | Run `warden, spotcheck rookie` again; or `warden, demote rookie` and show the manual path. |
 | Trust CLI unavailable | `REDTEAM_MODE=fallback`; mention it in narration. |

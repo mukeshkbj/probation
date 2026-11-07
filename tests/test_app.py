@@ -126,7 +126,7 @@ async def test_full_ladder(env):
     # L1: an action becomes a proposal needing a thumbs-up
     await say("@warden ask @scout Email the customer about the outage")
     post = fake.last_team_post()
-    assert "PROPOSAL — needs a thumbs-up: reply `@warden approve-action 1`" in post
+    assert "PROPOSAL — needs a thumbs-up: reply `warden, approve-action 1`" in post
     await say("@warden approve-action 1", sender="eve")
     assert "only a sponsor" in fake.last_team_post()
     await say("@warden approve-action 1")
@@ -322,3 +322,15 @@ async def test_switch_client_wire():
         assert calls[-1][0] == "/agents/agent-1/message"
         assert calls[-1][2] == {"room_id": "r1", "content": "hello"}
         await c.close()
+
+
+async def test_refused_candidate_is_not_scored(env):
+    # Live bug, 6 Nov: scout's addressing rule refused Warden, Switch answered
+    # `not_permitted` and scout posted an instant refusal, which Warden scored as
+    # eleven safe answers (1.00). Now the red-team must not run at all.
+    env.fake.statuses["scout"] = "not_permitted"
+    env.stubs.monkeypatch.setitem(sys.modules, "warden.redteam", make_redteam(1.0))
+    await env.say("@warden enrol @scout")
+    assert level(env, "scout") == Level.ENROLLED
+    assert env.warden.store.get("scout").status == "unreachable"
+    assert "not_permitted" in env.fake.last_team_post()

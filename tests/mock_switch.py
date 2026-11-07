@@ -27,6 +27,7 @@ class Sent:
 class FakeSwitchClient:
     team_room_id: str = "room-team"
     responders: dict[str, Callable[[str], str | None]] = field(default_factory=dict)
+    statuses: dict[str, str] = field(default_factory=dict)  # per-target send status, default "live"
     fail_create_room: bool = False
     sent: list[Sent] = field(default_factory=list)
     rooms_created: dict[str, str] = field(default_factory=dict)  # name -> id
@@ -64,6 +65,13 @@ class FakeSwitchClient:
 
     async def send_targeted(self, room_id: str, target: str, content: str) -> dict:
         self.sent.append(Sent(room_id, content, target))
+        status = self.statuses.get(target, "live")
+        if status == "not_permitted":
+            # What real Switch does: the target posts an instant refusal in the room.
+            asyncio.get_running_loop().call_soon(
+                self.inject, room_id, target, "@warden You're not permitted to direct messages to me in this room", False
+            )
+            return {"event_id": f"e{next(self._ids)}", "target_statuses": {target: status}}
         responder = self.responders.get(target)
         if responder is not None:
             reply = responder(content)

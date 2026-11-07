@@ -12,3 +12,8 @@ personnel/
 eval_*.json
 eval_*.sarif
 .DS_Store
+
+# local run artefacts
+.old-runs/
+*.log
+personnel/

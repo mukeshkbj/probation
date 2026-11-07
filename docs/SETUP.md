@@ -343,7 +343,7 @@ make warden
 In `#team`:
 
 ```text
-@warden help
+warden, help
 ```
 
 **You should see** Warden reply with its command list. You are ready for the

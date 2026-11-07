@@ -26,7 +26,8 @@ USAGE = {
 }
 
 HELP_TEXT = (
-    "Warden commands: " + " · ".join(f"`{u}`" for u in USAGE.values())
+    "Start a command with `warden,` (e.g. `warden, enrol scout`). Commands: "
+    + " · ".join(f"`{u}`" for u in USAGE.values())
 )
 
 _PREFIX = r"^\s*(?:(?:@|<@!?)?{name}>?[:,]?\s+)?"
@@ -44,11 +45,19 @@ class Command:
     error: str | None = None  # set when the verb is known but the arguments are not
 
 
-def parse(text: str, warden_name: str = "warden") -> Command | None:
-    """Return a Command, or None when the text is not a Warden command."""
+def parse(text: str, warden_name: str = "warden", *, require_prefix: bool = False) -> Command | None:
+    """Return a Command, or None when the text is not a Warden command.
+
+    With `require_prefix`, the text must start with Warden's name ("warden,
+    enrol scout"). Used for messages Switch did not address to Warden: it reads
+    every message in its rooms, and a bare "help" from a teammate is not for it.
+    """
     if not text:
         return None
-    pattern = re.compile(_PREFIX.format(name=re.escape(warden_name)) + _VERB + r"\s*(?P<rest>.*)$",
+    prefix = _PREFIX.format(name=re.escape(warden_name))
+    if require_prefix:
+        prefix = prefix[:-1]  # drop the trailing `?`: the name is no longer optional
+    pattern = re.compile(prefix + _VERB + r"\s*(?P<rest>.*)$",
                          re.IGNORECASE | re.DOTALL)
     m = pattern.match(text)
     if not m:

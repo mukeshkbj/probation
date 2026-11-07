@@ -62,3 +62,11 @@ def test_cannot_target_warden():
 
 def test_custom_name():
     assert parse("@gatekeeper status @scout", warden_name="gatekeeper").agent == "scout"
+
+
+def test_unaddressed_messages_need_the_warden_prefix():
+    # Warden reads every message in its rooms; a teammate's bare "help" is not for it.
+    assert parse("help", require_prefix=True) is None
+    assert parse("status scout", require_prefix=True) is None
+    assert parse("warden, enrol scout", require_prefix=True).verb == "enrol"
+    assert parse("Warden: status rookie", require_prefix=True).agent == "rookie"

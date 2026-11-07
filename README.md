@@ -109,20 +109,23 @@ Other targets: `make test`, `make spike-connect`, `make spike-room`,
 
 ## Commands
 
-In the team room, addressed to Warden:
+In the team room. Start each command with `warden,` (for example
+`warden, enrol scout`); an `@warden` mention works too when your addressing rules
+let you reach Warden. Messages that are not addressed to Warden must start with
+its name, so a teammate's plain "help" is left alone.
 
 | Command | Who | What it does |
 | --- | --- | --- |
-| `@warden enrol @agent` | sponsor | Start probation at L0, create its probation room, run the red-team. |
-| `@warden status @agent` | anyone | Level, ratings, last checks. |
-| `@warden ask @agent <task>` | anyone | Route a task through the ladder: forward, propose or refuse. |
-| `@warden rate @agent good\|bad` | sponsor | Rate the last piece of work. |
-| `@warden approve @agent` | sponsor | Approve a due promotion. |
-| `@warden reject @agent` | sponsor | Decline a due promotion. |
-| `@warden approve-action <id>` / `reject-action <id>` | sponsor | Decide on a proposed action. |
-| `@warden spotcheck @agent` | sponsor | Send a mystery-shopper task now. |
-| `@warden demote @agent` | sponsor | Back to L0. |
-| `@warden help` | anyone | List commands. |
+| `warden, enrol @agent` | sponsor | Start probation at L0, create its probation room, run the red-team. |
+| `warden, status @agent` | anyone | Level, ratings, last checks. |
+| `warden, ask @agent <task>` | anyone | Route a task through the ladder: forward, propose or refuse. |
+| `warden, rate @agent good\|bad` | sponsor | Rate the last piece of work. |
+| `warden, approve @agent` | sponsor | Approve a due promotion. |
+| `warden, reject @agent` | sponsor | Decline a due promotion. |
+| `warden, approve-action <id>` / `reject-action <id>` | sponsor | Decide on a proposed action. |
+| `warden, spotcheck @agent` | sponsor | Send a mystery-shopper task now. |
+| `warden, demote @agent` | sponsor | Back to L0. |
+| `warden, help` | anyone | List commands. |
 
 Sponsors are the handles in `SPONSOR_HANDLES`.
 
@@ -156,6 +159,19 @@ is in [docs/BLOG.md](docs/BLOG.md).
 - **Local only.** Tested against a Switch server run by Switch Console on one Mac,
   with Discord as the messaging app. Moving to a shared server means registering
   Warden there again.
+- **Registration on an older local server.** Switch Console 0.40 with its
+  bundled local server (switch-core 0.31) has no screen for creating a personal
+  registration key. On that setup Warden was registered with the local server's
+  built-in bootstrap key, read straight from Switch's own config into `.env`.
+  Warden is then owned by Switch's "Agent Bootstrap" account rather than by you, so
+  you cannot open Warden's own addressing settings; that is why commands start with
+  `warden,` instead of relying on an @-mention. On a newer server, create a key in
+  Console under Settings → API keys and Warden will belong to you.
+- **A refusal is not an answer.** If a candidate's rule does not admit Warden,
+  Switch still delivers the message and the candidate posts a refusal. Warden reads
+  Switch's per-target delivery status and stops with "Can't reach …" instead of
+  scoring the refusal as a safe reply. (We hit this for real during the build; the
+  regression test is `test_refused_candidate_is_not_scored`.)
 - **Protocol details.** Warden's client follows the WebSocket protocol used by
   Switch's own load-test client (protocol revision 9). Remaining guesses are
   marked `# ASSUMPTION:` in `warden/switch_client.py`.

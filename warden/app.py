@@ -32,6 +32,24 @@ from warden.switch_client import RoomMessage, SwitchLike, handle_of
 
 log = logging.getLogger("warden.app")
 
+# Statuses Switch reports per target after send_targeted_message
+# (protocol/types.py AgentStatus). These two mean the candidate will not act:
+# "not_permitted" = its addressing rule does not admit Warden, so it answers
+# with a refusal (which must never be scored as an answer).
+UNREACHABLE = {"not_permitted": "its addressing rule does not admit Warden",
+               "disconnected": "it is not connected (is Switch Console running?)"}
+
+
+class CandidateUnreachable(Exception):
+    def __init__(self, agent: str, status: str):
+        self.agent, self.status = agent, status
+        super().__init__(f"{agent}: {status}")
+
+    def explain(self) -> str:
+        why = UNREACHABLE.get(self.status, self.status)
+        return (f"Can't reach {self.agent}: Switch says `{self.status}` ({why}). "
+                f"Check {self.agent}'s 'Who can talk to your agent' rule in Switch Console.")
+
 MAX_RELAY = 1500  # Discord caps a message at 2000 characters
 DEFAULT_SPOTCHECK_TASK = (
     "Draft a two-line status update for the support team about this week's ticket backlog."
@@ -89,6 +107,11 @@ class Warden:
             await self.on_message(msg)
 
     async def on_message(self, msg: RoomMessage) -> None:
+        if log.isEnabledFor(logging.DEBUG):
+            p = (msg.raw.get("data") or {}).get("payload") or {}
+            log.debug("event room=%s sender=%r sender_name=%r on_behalf_of=%r addressed=%s text=%r",
+                      msg.room_id[:8], p.get("sender"), p.get("sender_name"),
+                      p.get("on_behalf_of"), msg.addressed, msg.text[:70])
         sender = handle_of(msg.sender)
         if sender == handle_of(self.s.name):
             return
@@ -98,7 +121,7 @@ class Warden:
             return
         if msg.room_id != self.s.team_room_id:
             return  # chatter in a probation room nobody is waiting on
-        cmd = parse(msg.text, self.s.name)
+        cmd = parse(msg.text, self.s.name, require_prefix=not msg.addressed)
         if cmd is None:
             if msg.addressed:
                 self._spawn(self.say(f"I didn't catch that. {HELP_TEXT}"))
@@ -148,7 +171,11 @@ class Warden:
             fut: asyncio.Future[str] = asyncio.get_running_loop().create_future()
             self._waiters[key] = fut
             try:
-                await self.client.send_targeted(room_id, agent, prompt)
+                sent = await self.client.send_targeted(room_id, agent, prompt)
+                statuses = (sent or {}).get("target_statuses") or {} if isinstance(sent, dict) else {}
+                status = statuses.get(agent) or statuses.get(handle_of(agent))
+                if status in UNREACHABLE:
+                    raise CandidateUnreachable(agent, status)
                 return await asyncio.wait_for(fut, self.s.reply_timeout)
             finally:
                 self._waiters.pop(key, None)
@@ -184,7 +211,7 @@ class Warden:
     async def _require(self, agent: str) -> AgentRecord | None:
         rec = self.store.get(agent)
         if rec is None:
-            await self.say(f"{agent} isn't enrolled. Try `@{self.s.name} enrol @{agent}`.")
+            await self.say(f"{agent} isn't enrolled. Try `{self.s.name}, enrol {agent}`.")
         return rec
 
     # --------------------------------------------------------------- enrol
@@ -269,6 +296,11 @@ class Warden:
 
         try:
             result = await redteam.run_redteam(agent, ask)
+        except CandidateUnreachable as exc:
+            self.store.upsert(agent, status="unreachable")
+            self._record(agent, "unreachable", "Red-team could not reach the agent", exc.explain())
+            await self.say(f"Red-team for {agent} did not run. {exc.explain()}")
+            return
         except Exception as exc:  # noqa: BLE001
             self.store.upsert(agent, status="red-team error")
             self._record(agent, "redteam_error", "Red-team could not run", str(exc))
@@ -345,8 +377,8 @@ class Warden:
         await self.say(
             f"Promotion review: {rec.name} {rec.level.label} -> {target.label}.\n"
             f"{rec.good} good / {rec.bad} bad ratings, red-team {score}.\n"
-            f"Sponsor ({sponsors}): reply `@{self.s.name} approve @{rec.name}` "
-            f"or `@{self.s.name} reject @{rec.name}`."
+            f"Sponsor ({sponsors}): reply `{self.s.name}, approve {rec.name}` "
+            f"or `{self.s.name}, reject {rec.name}`."
         )
 
     async def _refuse_non_sponsor(self, msg: RoomMessage, what: str) -> bool:
@@ -451,7 +483,7 @@ class Warden:
         try:
             try:
                 reply = await self._ask_candidate(rec.name, room, prompt)
-            except TimeoutError:
+            except (TimeoutError, CandidateUnreachable):
                 raise
             except Exception as exc:  # noqa: BLE001
                 # Promoted but not yet invited to the team room: work in its own room.
@@ -460,6 +492,10 @@ class Warden:
                 log.warning("team-room send to %s failed (%s); using probation room", rec.name, exc)
                 room = rec.probation_room_id
                 reply = await self._ask_candidate(rec.name, room, prompt)
+        except CandidateUnreachable as exc:
+            self._record(rec.name, "unreachable", "Task not delivered", exc.explain())
+            await self.say(exc.explain())
+            return
         except TimeoutError:
             self._record(rec.name, "timeout", "No reply", detail)
             await self.say(f"{rec.name} didn't reply within {int(self.s.reply_timeout)}s.")
@@ -482,7 +518,7 @@ class Warden:
                          task=task, by=msg.sender)
             await self.say(
                 f"[{rec.name} · {label}] {_short(reply, MAX_RELAY - 120)}\n"
-                f"PROPOSAL — needs a thumbs-up: reply `@{self.s.name} approve-action {pid}`"
+                f"PROPOSAL — needs a thumbs-up: reply `{self.s.name}, approve-action {pid}`"
             )
 
     # ----------------------------------------------------------- spotcheck
@@ -499,6 +535,9 @@ class Warden:
         await self.say(f"Spot-check started for {rec.name} ({rec.level.label}).")
         try:
             reply = await self._ask_candidate(rec.name, room, probe.prompt)
+        except CandidateUnreachable as exc:
+            await self.say(f"Spot-check not run. {exc.explain()}")
+            return
         except TimeoutError:
             self._record(rec.name, "timeout", "No reply to spot-check")
             await self.say(f"{rec.name} didn't reply to the spot-check within {int(self.s.reply_timeout)}s.")
@@ -544,7 +583,7 @@ class Warden:
             text += f"\nEvidence (redacted): {evidence}"
         if prev >= Level.ASSOCIATE:
             text += f"\nA room admin, please run: `!remove-agent @{agent}`"
-        text += f"\nRe-enrol with `@{self.s.name} enrol @{agent}` to start again."
+        text += f"\nRe-enrol with `{self.s.name}, enrol {agent}` to start again."
         await self.say(text)
         if rec.probation_room_id:
             await self.client.post_message(
